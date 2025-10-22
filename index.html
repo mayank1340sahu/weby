@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>My Application - Account Deletion Portal</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    
+    <style>
+        /* Minimalist Dark Mode-friendly Styling */
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 700px; 
+            margin: 40px auto; 
+            padding: 20px; 
+            border: 1px solid #333; 
+            line-height: 1.6;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            border-radius: 8px;
+        }
+        h1 { color: #FF4500; } /* Safety Red */
+        h2 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .danger { color: #FF4500; font-weight: bold; }
+        #auth-status { 
+            margin-top: 20px; 
+            margin-bottom: 20px; 
+            padding: 15px; 
+            border-radius: 8px; 
+            display: none; 
+            font-weight: bold;
+            text-align: center;
+        }
+        #login-prompt button { 
+            background-color: #4285F4; /* Google Blue */
+            color: white; 
+            border: none; 
+            padding: 12px 25px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            border-radius: 4px; 
+            font-weight: bold;
+        }
+        #delete-confirmation button { 
+            padding: 10px 20px; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 16px; 
+            border-radius: 4px; 
+        }
+        #delete-confirmation button:first-of-type {
+            background-color: #d93025; /* Firebase Red */
+            color: white;
+        }
+        #delete-confirmation button:last-of-type {
+             background-color: #444; 
+             color: #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Account Deletion for My Application</h1>
+    <p>This portal allows you to permanently delete your **My Application** account and all associated data.</p>
+    
+    <div id="auth-status"></div>
+
+    <div id="login-prompt">
+        <h2>Step 1: Re-authenticate with Google</h2>
+        <p>Your account was created using **Google Sign-In**. For security, we require you to re-authenticate (sign in again) to confirm your request for permanent deletion.</p>
+        
+        <button onclick="signInWithGoogleForDelete()">
+            Sign In with Google to Continue
+        </button>
+        <p style="margin-top: 15px;">Note: This action is irreversible once confirmed.</p>
+    </div>
+
+    <div id="delete-confirmation" style="display: none;">
+        <h2><span class="danger">Step 2: FINAL CONFIRMATION</span></h2>
+        <p>You are currently signed in as: <strong id="user-email"></strong></p>
+        
+        <p class="danger">By clicking the button below, you confirm that you want to delete your account. This will trigger a permanent server-side process:</p>
+        <ul>
+            <li>Your entire Firebase Authentication profile will be **deleted**.</li>
+            <li>All your financial **transaction history** and **budgets** in Firestore will be **recursively erased** by our Cloud Function.</li>
+            <li>This deletion is **immediate and irreversible**.</li>
+        </ul>
+
+        <button onclick="deleteAccount()">
+            YES, PERMANENTLY DELETE MY ACCOUNT
+        </button>
+        <button onclick="signOut()" style="margin-left: 10px;">Cancel and Sign Out</button>
+    </div>
+
+    <script>
+        // =========================================================
+        // STEP 1: REPLACE THESE WITH YOUR ACTUAL FIREBASE CONFIG
+        // =========================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9bwaoIX5l60lpCDg_Haz7OXbf3C-KltE", // Replace with your actual key
+            authDomain: "finai-5a25b.firebaseapp.com", // Replace with your actual domain
+            projectId: "finai-5a25b", // Replace with your actual project ID
+            storageBucket: "finai-5a25b.firebasestorage.app", // Replace
+            messagingSenderId: "639153279783", // Replace
+            appId: "1:639153279783:web:ebc55a16869b6e5642cf02", // Replace
+            measurementId: "G-2XW3G9HZKL" // Replace
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+        // --- Utility Functions ---
+
+        /** Updates the UI based on the current user's login status. */
+        function updateUI(user) {
+            // Check if user is logged in AND signed in via Google (Optional: for validation)
+            const isGoogleUser = user && user.providerData.some(p => p.providerId === 'google.com');
+
+            if (isGoogleUser) {
+                document.getElementById('login-prompt').style.display = 'none';
+                document.getElementById('delete-confirmation').style.display = 'block';
+                document.getElementById('user-email').innerText = user.email || 'Unknown User';
+            } else {
+                document.getElementById('login-prompt').style.display = 'block';
+                document.getElementById('delete-confirmation').style.display = 'none';
+                document.getElementById('user-email').innerText = '';
+            }
+        }
+
+        /** Displays a status message to the user. */
+        function showMessage(message, isError = false) {
+            const statusDiv = document.getElementById('auth-status');
+            statusDiv.innerText = message;
+            statusDiv.style.backgroundColor = isError ? '#3d0c0c' : '#0c3d0c';
+            statusDiv.style.color = isError ? '#FF4500' : '#7FFF00';
+            statusDiv.style.border = isError ? '1px solid #d93025' : '1px solid #1e8e3e';
+            statusDiv.style.display = 'block';
+        }
+
+        // --- Auth Handlers ---
+
+        /** Triggers a sign-in popup to refresh the user's login token (required for deletion). */
+        function signInWithGoogleForDelete() {
+            showMessage("Signing in...", false);
+            auth.signInWithPopup(googleProvider)
+                .then((result) => {
+                    showMessage("Successfully signed in. You can now permanently delete your account.", false);
+                    updateUI(result.user);
+                })
+                .catch((error) => {
+                    showMessage("Sign-in error: " + error.message, true);
+                });
+        }
+
+        /** Signs the user out. */
+        function signOut() {
+            auth.signOut().then(() => {
+                showMessage("Signed out. Deletion cancelled.", false);
+                updateUI(null);
+            });
+        }
+
+        // --- Deletion Handler ---
+
+        /** Deletes the user's Firebase Auth account, triggering the Cloud Function. */
+        async function deleteAccount() {
+            const user = auth.currentUser;
+            if (!user) {
+                showMessage("Session expired. Please sign in again.", true);
+                return;
+            }
+            
+            // Disable button to prevent double-clicks
+            const deleteBtn = document.querySelector('#delete-confirmation button:first-of-type');
+            deleteBtn.disabled = true;
+            deleteBtn.innerText = "Deleting...";
+
+            showMessage("Starting permanent deletion... DO NOT close this window.", false);
+            
+            try {
+                // This call triggers the 'onDelete' Cloud Function in the backend 
+                // which handles the recursive deletion of all Firestore data.
+                await user.delete(); 
+
+                showMessage("✅ SUCCESS: Account and all associated data have been permanently deleted.", false);
+                updateUI(null);
+
+            } catch (error) {
+                console.error("Deletion error:", error);
+                
+                let errorMessage = error.message;
+                if (error.code === 'auth/requires-recent-login') {
+                    errorMessage = "Deletion failed. Your session has expired. Please sign out and sign in with Google again immediately before clicking delete.";
+                }
+                showMessage(`❌ Deletion failed: ${errorMessage}`, true);
+                
+                // Re-enable button
+                deleteBtn.disabled = false;
+                deleteBtn.innerText = "YES, PERMANENTLY DELETE MY ACCOUNT";
+            }
+        }
+        
+        // Check initial auth state on page load
+        auth.onAuthStateChanged(updateUI);
+    </script>
+
+</body>
+</html>
