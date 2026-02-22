@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>My Application - Account Deletion Portal</title>
+    <title>Kagami - Account Deletion Portal</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
@@ -21,7 +21,7 @@
             color: #f0f0f0;
             border-radius: 8px;
         }
-        h1 { color: #FF4500; } /* Safety Red */
+        h1 { color: #6C63FF; } /* Changed to match Kagami's Purple Accent */
         h2 { border-bottom: 2px solid #333; padding-bottom: 10px; }
         .danger { color: #FF4500; font-weight: bold; }
         #auth-status { 
@@ -58,18 +58,26 @@
              background-color: #444; 
              color: #ccc;
         }
+        .developer-info {
+            margin-top: -10px;
+            margin-bottom: 30px;
+            color: #888;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Account Deletion for My Application</h1>
-    <p>This portal allows you to permanently delete your **My Application** account and all associated data.</p>
+    <h1>Account Deletion for Kagami</h1>
+    <p class="developer-info">App Developed by: Mayank Sahu</p>
+    
+    <p>This portal allows you to permanently delete your <strong>Kagami</strong> account and all associated data.</p>
     
     <div id="auth-status"></div>
 
     <div id="login-prompt">
         <h2>Step 1: Re-authenticate with Google</h2>
-        <p>Your account was created using **Google Sign-In**. For security, we require you to re-authenticate (sign in again) to confirm your request for permanent deletion.</p>
+        <p>Your account was created using <strong>Google Sign-In</strong>. For security, we require you to re-authenticate (sign in again) to confirm your request for permanent deletion.</p>
         
         <button onclick="signInWithGoogleForDelete()">
             Sign In with Google to Continue
@@ -83,9 +91,9 @@
         
         <p class="danger">By clicking the button below, you confirm that you want to delete your account. This will trigger a permanent server-side process:</p>
         <ul>
-            <li>Your entire Firebase Authentication profile will be **deleted**.</li>
-            <li>All your financial **transaction history** and **budgets** in Firestore will be **recursively erased** by our Cloud Function.</li>
-            <li>This deletion is **immediate and irreversible**.</li>
+            <li>Your entire Firebase Authentication profile will be <strong>deleted</strong>.</li>
+            <li>All your financial <strong>transaction history</strong> and <strong>budgets</strong> in Firestore will be <strong>recursively erased</strong>.</li>
+            <li>This deletion is <strong>immediate and irreversible</strong>.</li>
         </ul>
 
         <button onclick="deleteAccount()">
@@ -118,7 +126,7 @@
 
         /** Updates the UI based on the current user's login status. */
         function updateUI(user) {
-            // Check if user is logged in AND signed in via Google (Optional: for validation)
+            // Check if user is logged in AND signed in via Google
             const isGoogleUser = user && user.providerData.some(p => p.providerId === 'google.com');
 
             if (isGoogleUser) {
